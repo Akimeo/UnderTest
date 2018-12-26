@@ -293,7 +293,8 @@ class ShowTest(QMainWindow):
 
     def initUI(self):
         try:
-            self.data = loads(crypt(open('tesst.UT').read()))
+            self.info = []
+            self.data = loads(crypt(open('test.UT', encoding='UTF-16').read()))
             self.tab = QTabWidget()
             self.setCentralWidget(self.tab)
             self.set_tab()
@@ -308,48 +309,53 @@ class ShowTest(QMainWindow):
 
     def set_tab(self):
         for i in range(len(self.data)):
-            qp = QuestPage()
+            self.info.append({})
+            self.info[i]['page'] = QuestPage()
             
-            qp.back_btn.clicked.connect(self.switch)
-            qp.fwd_btn.clicked.connect(self.switch)
+            self.info[i]['page'].back_btn.clicked.connect(self.switch)
+            self.info[i]['page'].fwd_btn.clicked.connect(self.switch)
             
-            qp.question.setPlainText(self.data[i]['question'])
+            self.info[i]['page'].question.setPlainText(self.data[i]['question'])
 
             n = len(self.data[i]['vars'])
             if self.data[i]['type'] == 0:
+                self.info[i]['btns'] = []
                 for j in range(n):
                     hbox = QHBoxLayout()
                     rb = QRadioButton()
+                    self.info[i]['btns'].append(rb)
                     hbox.addWidget(rb)
                     label = QLabel(self.data[i]['vars'][j])
                     hbox.addWidget(label)
                     hbox.addStretch()
                     if j == n - 1 and j % 2 == 0:
-                        qp.verticalLayout_1.addLayout(hbox)
+                        self.info[i]['page'].verticalLayout_1.addLayout(hbox)
                     else:
                         if j % 2 == 0:
-                            qp.verticalLayout_2.addLayout(hbox)
+                            self.info[i]['page'].verticalLayout_2.addLayout(hbox)
                         else:
-                            qp.verticalLayout_3.addLayout(hbox)
+                            self.info[i]['page'].verticalLayout_3.addLayout(hbox)
             elif self.data[i]['type'] == 1:
+                self.info[i]['btns'] = []
                 for j in range(n):
                     hbox = QHBoxLayout()
                     chb = QCheckBox()
+                    self.info[i]['btns'].append(chb)
                     hbox.addWidget(chb)
                     label = QLabel(self.data[i]['vars'][j])
                     hbox.addWidget(label)
                     hbox.addStretch()
                     if j == n - 1 and j % 2 == 0:
-                        qp.verticalLayout_1.addLayout(hbox)
+                        self.info[i]['page'].verticalLayout_1.addLayout(hbox)
                     else:
                         if j % 2 == 0:
-                            qp.verticalLayout_2.addLayout(hbox)
+                            self.info[i]['page'].verticalLayout_2.addLayout(hbox)
                         else:
-                            qp.verticalLayout_3.addLayout(hbox)
+                            self.info[i]['page'].verticalLayout_3.addLayout(hbox)
             else:
-                qp.verticalLayout_1.addWidget(QLineEdit())
+                self.info[i]['page'].verticalLayout_1.addWidget(QLineEdit())
                 
-            self.tab.addTab(qp, str(i + 1))
+            self.tab.addTab(self.info[i]['page'], str(i + 1))
 
     def switch(self):
         if self.sender().text() == 'Назад':
@@ -358,7 +364,17 @@ class ShowTest(QMainWindow):
             self.tab.setCurrentIndex(self.tab.currentIndex() + 1)
 
     def finish_test(self):
-        pass
+        try:
+            for i in range(len(self.info)):
+                if self.data[i]['type'] == 0:
+                    for j in self.info[i]['btns']:
+                        if self.info[i]['btns'][j].isChecked:
+                            if j == int(self.data[i]['rightAnswers']):
+                                print('OK')
+                            else:
+                                print('FUCK YOU')
+        except Exception as e:
+            print(e)
 
 
 app = QApplication(sys.argv)
