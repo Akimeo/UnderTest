@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QTabWidget" name="tab">
+      <property name="currentIndex">
+       <number>-1</number>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>26</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Файл</string>
+    </property>
+    <addaction name="act_open"/>
+    <addaction name="act_run"/>
+    <addaction name="separator"/>
+    <addaction name="act_save"/>
+    <addaction name="act_saveAs"/>
+    <addaction name="separator"/>
+    <addaction name="act_close"/>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>Формат</string>
+    </property>
+    <addaction name="act_add_question"/>
+    <addaction name="act_del_question"/>
+    <addaction name="separator"/>
+    <addaction name="act_add_ans"/>
+   </widget>
+   <addaction name="menu"/>
+   <addaction name="menu_2"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="act_open">
+   <property name="text">
+    <string>Открыть</string>
+   </property>
+  </action>
+  <action name="act_save">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Сохранить</string>
+   </property>
+  </action>
+  <action name="act_saveAs">
+   <property name="text">
+    <string>Сохранить как</string>
+   </property>
+  </action>
+  <action name="act_close">
+   <property name="text">
+    <string>Закрыть</string>
+   </property>
+  </action>
+  <action name="act_run">
+   <property name="text">
+    <string>Запустить</string>
+   </property>
+  </action>
+  <action name="act_del_question">
+   <property name="text">
+    <string>Удалить вопрос</string>
+   </property>
+  </action>
+  <action name="act_add_question">
+   <property name="text">
+    <string>Добавить вопрос</string>
+   </property>
+  </action>
+  <action name="act_add_ans">
+   <property name="text">
+    <string>Добавить вариант ответа</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
