@@ -56,7 +56,7 @@ class MakeTest(QMainWindow, MT):
             self.info[0]['vbox'] = tp.verticalLayout_2
             self.info[0]['ans_lines'] = []
             self.info[0]['del_btns'] = []
-            self.info[0]['ans_type'] = 'Один правильный вариант'
+            self.info[0]['ans_type'] = 0
             self.info[0]['ans_group'] = QButtonGroup()
             self.info[0]['RBG'] = tp.RBG
             self.info[0]['RBG'].buttonClicked.connect(self.ans_type)
@@ -64,15 +64,16 @@ class MakeTest(QMainWindow, MT):
             self.tab.addTab(tp, '1')
             self.add_line(0)
             self.tab.addTab(QWidget(), '+')
+            self.info[0]['ans_lines'][0].radioButton.setChecked(True)
         
             self.info[0]['var_btn'].clicked.connect(lambda: self.add_line(self.tab.currentIndex()))
             self.tab.currentChanged.connect(self.new_tab)
 
         except Exception as e:
-            print('initUI', e)
+            print('main', e)
 
     def test(self, pn):
-        # Для тестов
+        # Для тестов    
         print(pn)
 
     def new_tab(self, smth=False, menuCall = False):
@@ -96,18 +97,22 @@ class MakeTest(QMainWindow, MT):
             # Список кнопок, удаляющих варианты ответов
             self.info[self.i]['del_btns'] = []
             # Выбранный тип ответов
-            self.info[self.i]['ans_type'] = 'Один правильный вариант'
+            self.info[self.i]['ans_type'] = 0
             # Группа радио-кнопок для вариантов ответов
             self.info[self.i]['ans_group'] = QButtonGroup()
             # Группа радио-кнопок для выбора типа ответов
             self.info[self.i]['RBG'] = tp.RBG
             self.info[self.i]['RBG'].buttonClicked.connect(self.ans_type)
+            #Добавыление вкладки в таблицу
             self.tab.insertTab(self.i, tp, str(self.i + 1))
+            #Добавление первой строки ответа
             self.add_line(self.i)
-            
+
+            self.info[self.i]['ans_lines'][0].radioButton.setChecked(True)
             self.info[self.i]['var_btn'].clicked.connect(lambda: self.add_line(self.tab.currentIndex()))
-            
+
             self.tab.setCurrentIndex(self.i)
+
         except Exception as e:
             print('new_tab', e)
 
@@ -120,7 +125,14 @@ class MakeTest(QMainWindow, MT):
             self.info[pn]['ans_lines'] = []
             self.info[pn]['del_btns'] = []
             self.info[pn]['ans_group'] = QButtonGroup()
-            self.info[pn]['ans_type'] = btn.text()
+            # Представление типа как числа
+            if btn.text() == 'Один правильный вариант':
+                self.info[pn]['ans_type'] = 0
+            elif btn.text() == 'Несколько правильных вариантов':
+                self.info[pn]['ans_type'] = 1
+            else:
+                self.info[pn]['ans_type'] = 2
+
             self.info[pn]['var_btn'].show()
             self.add_line(pn)
             
@@ -130,12 +142,10 @@ class MakeTest(QMainWindow, MT):
     def add_line(self, pn):
         # Добавление вариата ответа
         try:
-
-            k = self.info[pn]['ans_type']
-            if k == 'Один правильный вариант':
+            if self.info[pn]['ans_type'] == 0:
                 self.info[self.i]['var_btn'].show()
                 linetype, lt = RadioForm(), True
-            elif k == 'Несколько правильных вариантов':
+            elif self.info[pn]['ans_type'] == 1:
                 self.info[self.i]['var_btn'].show()
                 linetype, lt =  CheckBoxForm(), True
             else:
@@ -151,19 +161,30 @@ class MakeTest(QMainWindow, MT):
             self.info[pn]['vbox'].addWidget(self.info[pn]['ans_lines'][-1])
 
             if lt:
+
                 self.info[pn]['del_btns'].append(self.info[pn]['ans_lines'][-1].delete_btn)
                 self.info[pn]['del_btns'][-1].clicked.connect(lambda: self.del_line(pn, len(self.info[pn]['del_btns']) - 1))
 
                 if len(self.info[pn]['del_btns']) == 10:
                     self.info[pn]['var_btn'].hide()
+
                 elif len(self.info[pn]['del_btns']) != 1:
                     self.info[pn]['del_btns'][0].setEnabled(True)
+
                 else:
                     self.info[pn]['del_btns'][0].setEnabled(False)
-                if type(self.info[pn]['ans_lines'][0]) == type(RadioForm()):
+
+
+                if self.info[pn]['ans_type'] == 0:
                     self.info[pn]['ans_group'].addButton(self.info[pn]['ans_lines'][-1].radioButton)
+
+                    if len(self.info[pn]['ans_lines']) == 1:
+                        self.info[0]['ans_lines'][0].radioButton.setChecked(True)
+
             else:
+
                 self.info[pn]['ans_lines'][0].setPlaceholderText('Введите правильный ответ...')
+
         except Exception as e:
             print('add_line', e)
 
@@ -174,10 +195,18 @@ class MakeTest(QMainWindow, MT):
             self.info[pn]['ans_lines'][ln].deleteLater()
             self.info[pn]['ans_lines'].pop(ln)
             self.info[pn]['del_btns'].pop(ln)
+
             if len(self.info[pn]['ans_lines']) == 9:
                 self.info[pn]['var_btn'].show()
             elif len(self.info[pn]['ans_lines']) == 1:
                 self.info[pn]['del_btns'][0].setEnabled(False)
+
+            if self.info[pn]['ans_type'] == 0:
+                for n in self.info[pn]['ans_group'].buttons()[:-1]:
+                    if n.isChecked():
+                        return None
+                self.info[pn]['ans_lines'][0].radioButton.setChecked(True)
+
         except Exception as e:
             print('del_line', e)
 
@@ -188,48 +217,54 @@ class MakeTest(QMainWindow, MT):
         # Открытие файла
         fileName = QFD.getOpenFileName(self, "Открыть файл", "", 'Files (*.*)')[0]
         if fileName:
-            self.fileName =fileName
-            '''
-            self.fn = fileName
-            self.opd = open(fileName, 'r+')
-            self.text = self.opd.read()
-            self.NotePlace.setPlainText(self.text)
-            self.fileSave.setEnabled(True)
-            self.opd.close()
-            self.setWindowTitle(self.fn.split('/')[-1] + self.wt)
-            self.tch = False'''
+            self.fileName = fileName
+            self.act_save.setEnabled(True)
 
     def save(self):
+        self.file = open(self.fileName, 'w+')
         try:
             for pn in range(len(self.info)):
                 self.data[pn]['question'] = self.info[pn]['page'].plainTextEdit.toPlainText()
                 self.data[pn]['type'] = self.info[pn]['ans_type']
-                btns = self.info[pn]['ans_group'].buttons()
-                self.data[pn]['vars'] = []
-                for j in range(len(btns)):
-                    self.data[pn]['vars'].append(self.info[pn]['ans_lines'][j].ans.text())
-                    if btns[j].isChecked():
-                        self.data[pn]['rightAnswers'] = j
+
+                if self.data[pn]['type'] == 0:
+                    btns = self.info[pn]['ans_group'].buttons()
+                    self.data[pn]['vars'] = []
+                    for j in range(len(btns)):
+                        self.data[pn]['vars'].append(self.info[pn]['ans_lines'][j].ans.text())
+                        if btns[j].isChecked():
+                            self.data[pn]['rightAnswers'] = j
+
+                elif self.data[pn]['type'] == 1:
+                    self.data[pn]['vars'] = []
+                    self.data[pn]['rightAnswers'] = []
+                    for j in range(len(self.info[pn]['ans_lines'])):
+                        self.data[pn]['vars'].append(self.info[pn]['ans_lines'][j].ans.text())
+                        if self.info[pn]['ans_lines'][j].checkBox.isChecked():
+                            self.data[pn]['rightAnswers'].append(j)
+
+                else:
+                    self.data[pn]['vars'] = ['']
+                    self.data[pn]['rightAnswers'] = self.info[pn]['ans_lines'][0].text()
+            self.data = str(self.data)
+            if len(self.data) % 2 != 0:
+                self.data.insert(len(self.data) // 2 + 1, '╫')
+            self.file.write(str(self.data))
+            self.file.close()
             print(self.data)
         except Exception as e:
             print('save', e)
 
     def saveAs(self):
         # Сохранение файла с указанием названия
-        fileName = QFD.getSaveFileName(self, "Сохранить файл", "", 'Files (*.*)')[0]
+        fileName = QFD.getSaveFileName(self, "Сохранить файл", "", 'UnderTest files (*.UT)')[0]
         if fileName:
             self.fileName = fileName
-            '''
-            if "." not in fileName:
-                fileName += ".txt"
-            self.fn = fileName
-            self.opd = open(fileName, 'w+')
-            self.text = self.NotePlace.toPlainText()
-            self.opd.write(self.text)
-            self.opd.close()
-            self.setWindowTitle(self.fn.split('/')[-1] + self.wt)
-            self.tch = False
-            '''
+            spl = fileName.split('.')
+            if spl[-1] != 'UT':
+                self.fileName = '.'.join(spl[:-1]) + '.UT'
+            self.act_save.setEnabled(True)
+            self.save()
 
     def close_tab(self):
         QMessageBox.information(self, "Стройка кода", "К сожалению, эта функция ещё не добавлена")
