@@ -1,16 +1,22 @@
 import sys
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QTabWidget,
                              QPushButton, QButtonGroup, QVBoxLayout, QLineEdit,
-                             QMenuBar, QMenu, QAction, QMessageBox, QTabBar)
-from PyQt5.QtGui import QIcon
+                             QMenuBar, QMenu, QAction, QMessageBox, QLabel,
+                             QHBoxLayout, QRadioButton, QCheckBox, QTabBar)
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import QSize, QRect
 from main_menu import Ui_MainWindow
 from tab_design import Ui_Form
 from radio_form import Ui_Form as RF
 from check_box_form import Ui_Form as CHBF
 from make_test import Ui_MainWindow as MT
+from show_test import Ui_Form as QP
 from PyQt5.QtWidgets import QFileDialog as QFD
+from json import loads
 from win32n64r import crypt
+from re import split as resplit
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
 class UnderTest(QMainWindow, Ui_MainWindow):
@@ -19,9 +25,15 @@ class UnderTest(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.pushButton.setIcon(QIcon("show_test_icon.png"))
         self.pushButton.setIconSize(QSize(150,150))
+        self.pushButton.clicked.connect(self.show_test)
         self.pushButton_2.setIcon(QIcon("make_test_icon.png"))
         self.pushButton_2.setIconSize(QSize(150,150))
         self.pushButton_2.clicked.connect(self.make_test)
+
+    def show_test(self):
+        under_test.close()
+        self.test = ShowTest()
+        self.test.show()
 
     def make_test(self):
         under_test.close()
@@ -39,6 +51,7 @@ class MakeTest(QMainWindow, MT):
         try:
             self.info = [{}]
             self.data = [{}]
+            self.fileName = None
             self.tab_bar = QTabBar()
             self.tab.setTabBar(self.tab_bar)
 
@@ -182,7 +195,7 @@ class MakeTest(QMainWindow, MT):
                     self.info[pn]['ans_group'].addButton(self.info[pn]['ans_lines'][-1].radioButton)
 
                     if len(self.info[pn]['ans_lines']) == 1:
-                        self.info[0]['ans_lines'][0].radioButton.setChecked(True)
+                        self.info[pn]['ans_lines'][0].radioButton.setChecked(True)
 
             else:
 
@@ -214,11 +227,18 @@ class MakeTest(QMainWindow, MT):
             print('del_line', e)
 
     def run(self):
-        QMessageBox.information(self, "Стройка кода", "К сожалению, эта функция ещё не добавлена")
+        if not self.fileName:
+            a = QMessageBox.warning(self, "Запуск файла", "Необходимо сохранить файл")
+            print(a)
+            self.saveAs()
+        else:
+            self.save()
+        self.test_run = ShowTest(self.fileName)
+        self.test_run.show()
 
     def open(self):
         # Открытие файла
-        fileName = QFD.getOpenFileName(self, "Открыть файл", "", 'Files (*.*)')[0]
+        fileName = QFD.getOpenFileName(self, "Открыть файл", "", 'UnderTest files (*.*)')[0]
         if fileName:
             self.fileName = fileName
             self.act_save.setEnabled(True)
@@ -249,7 +269,17 @@ class MakeTest(QMainWindow, MT):
                 else:
                     self.data[pn]['vars'] = ['']
                     self.data[pn]['rightAnswers'] = self.info[pn]['ans_lines'][0].text()
-            self.file.write(crypt(str(self.data).replace('\'', '"')))
+
+            try:
+                pni = 0
+                for pn in range(len(self.data)):
+                    if not self.data[pn - pni]:
+                        self.data.pop(pn - pni)
+                        pni += 1
+                self.data = crypt(str(self.data).replace('\'', '"'))
+            except Exception as e:
+                print('data', e)
+            self.file.write(self.data)
             self.file.close()
 
         except Exception as e:
@@ -273,6 +303,7 @@ class MakeTest(QMainWindow, MT):
             self.tab_bar.setTabText(i, str(i + 1))
         self.i -= 1
         self.tab.setCurrentIndex(pn-1 if pn > 0 else 0)
+        
 
 
 class TabPage(QWidget, Ui_Form):
@@ -295,6 +326,175 @@ class CheckBoxForm(QWidget, CHBF):
         super().__init__()
         self.setupUi(self)
 
+
+class QuestPage(QWidget, QP):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+
+class ShowTest(QMainWindow):
+    global under_test
+    def __init__(self, fileName=None):
+        super().__init__()
+        while not fileName:
+            fileName = QFD.getOpenFileName(self, "Открыть файл", "", 'UnderTest files (*.UT)')[0]
+            if not fileName:
+                reply = QMessageBox.question(self, "Выберите файл", "Вы не выбрали файл", QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel)
+                print(reply)
+                if reply == 0 or reply == QMessageBox.Cancel:
+                    break
+        if fileName:
+            self.initUI(fileName)
+        else:
+            under_test.show()
+
+    def initUI(self, filename):
+        try:
+            print(filename)
+            self.info = []
+            self.data = loads(crypt(open(filename, encoding='UTF-16').read()))
+            self.fileName = filename.replace('\\', '/')
+            self.tab = QTabWidget()
+            self.setCentralWidget(self.tab)
+            self.set_tab()
+
+            self.end_btn = QPushButton('Завершить работу', self)
+            self.end_btn.clicked.connect(self.finish_test)
+
+            self.tab.addTab(self.end_btn, 'Завершить работу')
+        except Exception as e:
+            print(e)
+        
+
+    def set_tab(self):
+        for i in range(len(self.data)):
+            self.info.append({})
+            self.info[i]['page'] = QuestPage()
+            
+            self.info[i]['page'].back_btn.clicked.connect(self.switch)
+            self.info[i]['page'].fwd_btn.clicked.connect(self.switch)
+            
+            self.info[i]['page'].question.setPlainText(self.data[i]['question'])
+
+            n = len(self.data[i]['vars'])
+            if self.data[i]['type'] == 0:
+                self.info[i]['btns'] = []
+                for j in range(n):
+                    rb = QRadioButton(self.data[i]['vars'][j])
+                    self.info[i]['btns'].append(rb)
+                    if j == n - 1 and j % 2 == 0:
+                        self.info[i]['page'].verticalLayout_1.addWidget(rb)
+                    else:
+                        if j % 2 == 0:
+                            self.info[i]['page'].verticalLayout_2.addWidget(rb)
+                        else:
+                            self.info[i]['page'].verticalLayout_3.addWidget(rb)
+            elif self.data[i]['type'] == 1:
+                self.info[i]['btns'] = []
+                for j in range(n):
+                    chb = QCheckBox(self.data[i]['vars'][j])
+                    self.info[i]['btns'].append(chb)
+                    if j == n - 1 and j % 2 == 0:
+                        self.info[i]['page'].verticalLayout_1.addWidget(chb)
+                    else:
+                        if j % 2 == 0:
+                            self.info[i]['page'].verticalLayout_2.addWidget(chb)
+                        else:
+                            self.info[i]['page'].verticalLayout_3.addWidget(chb)
+            else:
+                le = QLineEdit()
+                self.info[i]['page'].verticalLayout_1.addWidget(le)
+                self.info[i]['btns'] = le
+                
+            self.tab.addTab(self.info[i]['page'], str(i + 1))
+
+    def switch(self):
+        if self.sender().text() == 'Назад':
+            self.tab.setCurrentIndex(self.tab.currentIndex() - 1)
+        else:
+            self.tab.setCurrentIndex(self.tab.currentIndex() + 1)
+
+    def finish_test(self):
+        try:
+            self.good_ans = 0
+            self.bad_ans = 0
+            print(self.data)
+            print('Analisys data...')
+            for i in range(len(self.info)):
+                if self.data[i]['type'] == 0:
+                    for j in range(len(self.info[i]['btns'])):
+                        if self.info[i]['btns'][j].isChecked():
+                            if j == int(self.data[i]['rightAnswers']):
+                                self.good_ans += 1
+                            else:
+                                self.bad_ans += 1
+                elif self.data[i]['type'] == 1:
+                    ans = []
+                    for j in range(len(self.info[i]['btns'])):
+                        if self.info[i]['btns'][j].isChecked():
+                            ans.append(j)
+                    if ans == self.data[i]['rightAnswers']:
+                        self.good_ans += 1
+                    else:
+                        self.bad_ans += 1
+                else:
+                    if self.info[i]['btns'].text() == self.data[i]['rightAnswers']:
+                        self.good_ans += 1
+                    else:
+                        self.bad_ans += 1
+                print(self.good_ans, self.bad_ans)
+
+            print('Analisys finished')
+            self.draw_pie()
+            self.show_result()
+
+        except Exception as e:
+            print(e)
+
+    def draw_pie(self):
+        global good, bad, i
+        try:
+            print('Drawing...')
+            data_names = ['Правильные ответы', 'Неправильные ответы']
+            good, bad = good_bad = [self.good_ans, self.bad_ans]
+            n = 1.5
+
+            fig = plt.figure(dpi = 50, figsize = (n*10, n*10))
+            mpl.rcParams.update({'font.size': n*10})
+            print('Drawing parameters set')
+
+            plt.title('Ваш результат:')
+
+            xs = range(len(data_names))
+            plt.pie(good_bad, startangle = 90.0, autopct = shownum, colors = ['green', 'red'])
+            plt.legend(bbox_to_anchor = (-0.16, 0.45, 0.25, 0.25), loc = 'lower left', labels = data_names)
+            self.fileName = '.'.join(self.fileName.split('/')[-1].split('.')[:-1])
+            fig.savefig(self.fileName + '_result.png')
+            i = 0
+            print('Drawing finished')
+        except Exception as e:
+            print('draw_pie', e)
+
+    def show_result(self):
+        self.result = QMainWindow()
+        self.pic = QLabel(self.result)
+        pixmap = QPixmap(self.fileName + '.png')
+        self.pic.setPixmap(pixmap)
+        self.result.adjustSize()
+        self.result.setCentralWidget(self.pic)
+        self.result.setMaximumSize(500, 500)
+        self.result.move(400, 25)
+        self.result.show()
+
+def shownum(pass_par):
+    global good, bad, i
+    i += 1
+    return [good, bad][i]
+
+
+i = -1
+good, bad = 0, 0
 
 app = QApplication(sys.argv)
 under_test = UnderTest()
