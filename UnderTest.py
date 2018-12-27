@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QTabWidget,
                              QPushButton, QButtonGroup, QVBoxLayout, QLineEdit,
-                             QMenuBar, QMenu, QAction, QMessageBox)
+                             QMenuBar, QMenu, QAction, QMessageBox, QTabBar)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QRect
 from main_menu import Ui_MainWindow
@@ -10,6 +10,7 @@ from radio_form import Ui_Form as RF
 from check_box_form import Ui_Form as CHBF
 from make_test import Ui_MainWindow as MT
 from PyQt5.QtWidgets import QFileDialog as QFD
+from win32n64r import crypt
 
 
 class UnderTest(QMainWindow, Ui_MainWindow):
@@ -38,6 +39,8 @@ class MakeTest(QMainWindow, MT):
         try:
             self.info = [{}]
             self.data = [{}]
+            self.tab_bar = QTabBar()
+            self.tab.setTabBar(self.tab_bar)
 
             self.i = 0
 
@@ -221,7 +224,7 @@ class MakeTest(QMainWindow, MT):
             self.act_save.setEnabled(True)
 
     def save(self):
-        self.file = open(self.fileName, 'w+')
+        self.file = open(self.fileName, 'w+', encoding = 'UTF-16')
         try:
             for pn in range(len(self.info)):
                 self.data[pn]['question'] = self.info[pn]['page'].plainTextEdit.toPlainText()
@@ -246,17 +249,13 @@ class MakeTest(QMainWindow, MT):
                 else:
                     self.data[pn]['vars'] = ['']
                     self.data[pn]['rightAnswers'] = self.info[pn]['ans_lines'][0].text()
-            self.data = str(self.data)
-            if len(self.data) % 2 != 0:
-                self.data.insert(len(self.data) // 2 + 1, '╫')
-            self.file.write(str(self.data))
+            self.file.write(crypt(str(self.data).replace('\'', '"')))
             self.file.close()
-            print(self.data)
+
         except Exception as e:
             print('save', e)
 
     def saveAs(self):
-        # Сохранение файла с указанием названия
         fileName = QFD.getSaveFileName(self, "Сохранить файл", "", 'UnderTest files (*.UT)')[0]
         if fileName:
             self.fileName = fileName
@@ -267,8 +266,13 @@ class MakeTest(QMainWindow, MT):
             self.save()
 
     def close_tab(self):
-        QMessageBox.information(self, "Стройка кода", "К сожалению, эта функция ещё не добавлена")
-        
+        pn = self.tab.currentIndex()
+        self.tab.removeTab(pn)
+        self.info.pop(pn)
+        for i in range(self.i):
+            self.tab_bar.setTabText(i, str(i + 1))
+        self.i -= 1
+        self.tab.setCurrentIndex(pn-1 if pn > 0 else 0)
 
 
 class TabPage(QWidget, Ui_Form):
